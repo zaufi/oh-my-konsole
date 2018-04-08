@@ -12,7 +12,7 @@
 # 0. the system-wide
 [[ -f /etc/conf.d/oh-my-konsole ]] && . /etc/conf.d/oh-my-konsole
 # 1. user overrides
-[[ -f ${HOME}/.oh-my-konsole.conf ]] && . ${HOME}/.oh-my-konsole.conf
+[[ -f ${HOME}/.config/oh-my-konsole.conf ]] && . ${HOME}/.config/oh-my-konsole.conf
 
 #
 # Change current color scheme of running `konsole` session
@@ -20,7 +20,7 @@
 function _omk_set_konsole_color_scheme()
 {
     local -r scheme=$1
-    [ -n "${KONSOLE_DBUS_SESSION}" ] && /usr/bin/konsoleprofile colorscheme=$scheme
+    /usr/bin/konsoleprofile colorscheme=$scheme
 }
 
 function docker()
