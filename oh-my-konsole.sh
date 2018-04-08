@@ -9,7 +9,10 @@
 [[ -z $KONSOLE_DBUS_SESSION ]] && return
 
 # Try get config if available
+# 0. the system-wide
 [[ -f /etc/conf.d/oh-my-konsole ]] && . /etc/conf.d/oh-my-konsole
+# 1. user overrides
+[[ -f ${HOME}/.oh-my-konsole.conf ]] && . ${HOME}/.oh-my-konsole.conf
 
 #
 # Change current color scheme of running `konsole` session

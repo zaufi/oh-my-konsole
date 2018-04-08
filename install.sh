@@ -34,11 +34,13 @@ while true; do
             # TODO Use XDG_DATA_DIRS?
             _dst_data_dir="/usr/share/konsole"
             _dst_sysconf_dir="/etc"
+            _dst_sample_config="/etc/conf.d/oh-my-konsole.sample"
             shift
             ;;
         -u|--user)
             _dst_data_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/konsole"
             _dst_sysconf_dir="${XDG_DATA_HOME:-${HOME}/.local/etc}"
+            _dst_sample_config="${HOME}/.config/oh-my-konsole.conf"
             echo -e '\n*** NOTE: To activate color changer, add `. ${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh` to your `~/.bashrc`\n'
             shift
             ;;
@@ -61,8 +63,8 @@ ls profile/* scheme/* | while read f; do
     install -m 0644 -D ${f} "${DESTDIR}${_dst_data_dir}/$(basename ${f})"
 done
 
-echo install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sysconf_dir}/conf.d/oh-my-konsole.sample"
-install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sysconf_dir}/conf.d/oh-my-konsole.sample"
+echo install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sample_config}"
+install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sample_config}"
 
 echo install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh"
 install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh"
