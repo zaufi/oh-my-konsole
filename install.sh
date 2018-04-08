@@ -38,6 +38,7 @@ while true; do
             ;;
         -u|--user)
             _dst_data_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/konsole"
+            _dst_sysconf_dir="${XDG_DATA_HOME:-${HOME}/.local/etc}"
             shift
             ;;
         --)
@@ -61,8 +62,7 @@ ls profile/* scheme/* | while read f; do
     install -m 0644 -D ${f} "${DESTDIR}${_dst_data_dir}/$(basename ${f})"
 done
 
-if [[ -n ${_dst_sysconf_dir} ]]; then
-    install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sysconf_dir}/conf.d/oh-my-konsole"
-else
-    echo "NOTE Sample config is not installed"
-fi
+install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sysconf_dir}/conf.d/oh-my-konsole"
+install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh"
+
+set +x
