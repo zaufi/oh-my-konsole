@@ -1,0 +1,14 @@
+#
+# Settings for `oh-my-konsole` package
+#
+
+# Default scheme (to be restore after...)
+OMK_DEFAULT_SCHEME=OMKDefault
+# Scheme used to execute `docker run` commands
+OMK_DOCKER_SCHEME=OMKDockerShell
+# Scheme used to execute SSH commands
+OMK_SSH_SCHEME=OMKSSHShell
+# Scheme used to execute root commands
+OMK_ROOT_SCHEME=OMKRootShell
+
+# kate: hl bash;
