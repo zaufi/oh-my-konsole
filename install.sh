@@ -39,6 +39,7 @@ while true; do
         -u|--user)
             _dst_data_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/konsole"
             _dst_sysconf_dir="${XDG_DATA_HOME:-${HOME}/.local/etc}"
+            echo -e '\n*** NOTE: To activate color changer, add `. ${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh` to your `~/.bashrc`\n'
             shift
             ;;
         --)
@@ -53,16 +54,15 @@ if [ -z "${_dst_data_dir}" ]; then
     exit 1
 fi
 
-# Show underlaid commands
-set -x
-
 # TODO Check shopt
 
 ls profile/* scheme/* | while read f; do
+    echo install -m 0644 -D ${f} "${DESTDIR}${_dst_data_dir}/$(basename ${f})"
     install -m 0644 -D ${f} "${DESTDIR}${_dst_data_dir}/$(basename ${f})"
 done
 
+echo install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sysconf_dir}/conf.d/oh-my-konsole.sample"
 install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sysconf_dir}/conf.d/oh-my-konsole.sample"
-install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh"
 
-set +x
+echo install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh"
+install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh"
