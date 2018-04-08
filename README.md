@@ -29,3 +29,10 @@ Run the `install.sh` provided. Install to the user's `$HOME`:
 or to the system:
 
     $ ./install.sh -s
+
+
+Configuration
+=============
+
+There is a trivial config file provided, so you can override
+desired color schemes for any command.
