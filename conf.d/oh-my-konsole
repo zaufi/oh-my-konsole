@@ -1,6 +1,9 @@
 #
 # Settings for `oh-my-konsole` package
 #
+# TODO Rename this to `oh-my-konsole` (w/o `.sample` extension)
+# so it'll take effect...
+#
 
 # Default scheme (to be restore after...)
 OMK_DEFAULT_SCHEME=OMKDefault

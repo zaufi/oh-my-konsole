@@ -62,7 +62,7 @@ ls profile/* scheme/* | while read f; do
     install -m 0644 -D ${f} "${DESTDIR}${_dst_data_dir}/$(basename ${f})"
 done
 
-install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sysconf_dir}/conf.d/oh-my-konsole"
+install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sysconf_dir}/conf.d/oh-my-konsole.sample"
 install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh"
 
 set +x
