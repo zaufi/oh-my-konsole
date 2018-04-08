@@ -29,10 +29,13 @@ Run the `install.sh` provided. Install to the user's `$HOME`:
 or to the system:
 
     $ ./install.sh -s
-
+    
+And for the Gentoo users, there is the [ebuild][1] for this package.
 
 Configuration
 =============
 
 There is a trivial config file provided, so you can override
 desired color schemes for any command.
+
+[1]: https://github.com/zaufi/zaufi-overlay/blob/master/kde-misc/oh-my-konsole/oh-my-konsole-scm.ebuild
