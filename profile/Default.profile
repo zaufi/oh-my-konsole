@@ -7,7 +7,7 @@ UseFontLineChararacters=false
 DefaultEncoding=UTF-8
 
 [General]
-Environment=TERM=konsole-256color,COLORTERM=truecolor
+Environment=TERM=konsole-direct
 LocalTabTitleFormat=%d : %n
 Name=Default
 Parent=FALLBACK/
@@ -21,7 +21,7 @@ KeyBindings=default
 
 [Scrolling]
 HistoryMode=1
-HistorySize=500000
+HistorySize=1000000
 ScrollBarPosition=2
 
 [Terminal Features]
