@@ -1,5 +1,5 @@
 [Appearance]
-ColorScheme=ZaufiDefault
+ColorScheme=OMKDefault
 Font=Consolas,14,-1,0,50,0,0,0,0,0
 UseFontLineChararacters=false
 

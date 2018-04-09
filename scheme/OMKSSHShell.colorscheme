@@ -2,16 +2,16 @@
 Color=10,10,35
 
 [BackgroundFaint]
-Color=0,0,0
+Color=10,10,35
 
 [BackgroundIntense]
-Color=0,0,0
+Color=10,10,35
 
 [Color0]
-Color=0,0,0
+Color=10,10,35
 
 [Color0Faint]
-Color=0,0,0
+Color=10,10,35
 
 [Color0Intense]
 Color=104,104,104
