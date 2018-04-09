@@ -7,7 +7,7 @@ UseFontLineChararacters=false
 DefaultEncoding=UTF-8
 
 [General]
-Environment=TERM=konsole-direct
+Environment=TERM=konsole-256color,COLORTERM=truecolor
 LocalTabTitleFormat=%d : %n
 Name=Default
 Parent=FALLBACK/
