@@ -80,13 +80,13 @@ Color=103,103,103
 Color=255,255,255
 
 [Foreground]
-Color=24,240,24
+Color=20,150,20
 
 [ForegroundFaint]
-Color=13,134,13
+Color=15,130,15
 
 [ForegroundIntense]
-Color=22,240,109
+Color=25,240,110
 
 [General]
 Description=OhMyKonsole: Green on Black
