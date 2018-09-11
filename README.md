@@ -29,7 +29,7 @@ Run the `install.sh` provided. Install to the user's `$HOME`:
 or to the system:
 
     $ ./install.sh -s
-    
+
 And for the Gentoo users, there is the [ebuild][1] for this package.
 
 Configuration
