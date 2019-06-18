@@ -12,7 +12,7 @@
 # 0. the system-wide
 [[ -f /etc/conf.d/oh-my-konsole ]] && . /etc/conf.d/oh-my-konsole
 # 1. user overrides
-[[ -f ${HOME}/.config/oh-my-konsole.conf ]] && . ${HOME}/.config/oh-my-konsole.conf
+[[ -f ${XDG_CONFIG_HOME:-${HOME}/.config}/oh-my-konsole.conf ]] && . ${XDG_CONFIG_HOME:-${HOME}/.config}/oh-my-konsole.conf
 
 #
 # Change current color scheme of running `konsole` session
