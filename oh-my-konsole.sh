@@ -25,11 +25,17 @@ function _omk_set_konsole_color_scheme()
 
 function docker()
 {
-    if [[ "$1" = run || "$1" = attach ]]; then
+    local -r _change_color=$( \
+        [[ "$1" == run \
+        || "$1" == attach \
+        || ("$1" == container && ("$2" == run || "$2" == attach)) \
+        ]] && echo yes || echo no \
+      )
+    if [[ ${_change_color} == yes ]]; then
         _omk_set_konsole_color_scheme ${OMK_DOCKER_SCHEME:-OMKDockerShell}
     fi
     /usr/bin/docker "$@"
-    if [[ "$1" = run || "$1" = attach ]]; then
+    if [[ ${_change_color} == yes ]]; then
         _omk_set_konsole_color_scheme ${OMK_DEFAULT_SCHEME:-OMKDefault}
     fi
 }
