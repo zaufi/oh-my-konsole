@@ -47,6 +47,17 @@ function ssh()
     _omk_set_konsole_color_scheme ${OMK_DEFAULT_SCHEME:-OMKDefault}
 }
 
+function vagrant()
+{
+    if [[ $1 == ssh ]];
+        _omk_set_konsole_color_scheme ${OMK_SSH_SCHEME:-OMKSSHShell}
+        /usr/bin/vagrant "$@"
+        _omk_set_konsole_color_scheme ${OMK_DEFAULT_SCHEME:-OMKDefault}
+    else
+        /usr/bin/vagrant
+    fi
+}
+
 function su()
 {
     _omk_set_konsole_color_scheme ${OMK_ROOT_SCHEME:-OMKRootShell}
