@@ -49,7 +49,7 @@ function ssh()
 
 function vagrant()
 {
-    if [[ $1 == ssh ]];
+    if [[ $1 == ssh ]]; then
         _omk_set_konsole_color_scheme ${OMK_SSH_SCHEME:-OMKSSHShell}
         /usr/bin/vagrant "$@"
         _omk_set_konsole_color_scheme ${OMK_DEFAULT_SCHEME:-OMKDefault}
