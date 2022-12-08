@@ -15,8 +15,9 @@ __EOF__
 ARGS=$(getopt -o "hsu" -l "help,system,user" -n "install.sh" -- "$@")
 
 # Check args
-if [ $? -ne 0 ]; then
-    echo "*** Error: Invalid agrument"
+# shellcheck disable=SC2181
+if [[ $? -ne 0 ]]; then
+    echo "*** Error: Invalid argument"
     exit 1
 fi
 
@@ -41,7 +42,7 @@ while true; do
             _dst_data_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/konsole"
             _dst_sysconf_dir="${XDG_DATA_HOME:-${HOME}/.local/etc}"
             _dst_sample_config="${HOME}/.config/oh-my-konsole.conf"
-            echo -e '\n*** NOTE: To activate color changer, add `. ${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh` to your `~/.bashrc`\n'
+            echo -e "\n*** NOTE: To activate color changer, add '. ${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh' to your '~/.bashrc'\n"
             shift
             ;;
         --)
@@ -51,16 +52,16 @@ while true; do
     esac
 done
 
-if [ -z "${_dst_data_dir}" ]; then
+if [[ -z ${_dst_data_dir} ]]; then
     echo "*** Error: Can't detect a destination path"
     exit 1
 fi
 
 # TODO Check shopt
 
-ls profile/* scheme/* | while read f; do
-    echo install -m 0644 -D ${f} "${DESTDIR}${_dst_data_dir}/$(basename ${f})"
-    install -m 0644 -D ${f} "${DESTDIR}${_dst_data_dir}/$(basename ${f})"
+for f in profile/* scheme/*; do
+    echo install -m 0644 -D "${f}" "${DESTDIR}${_dst_data_dir}/$(basename "${f}")"
+    install -m 0644 -D "${f}" "${DESTDIR}${_dst_data_dir}/$(basename "${f}")"
 done
 
 echo install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sample_config}"
