@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2023 Alex Turbov <zaufi@pm.me>
+# SPDX-License-Identifier: CC0-1.0
 name: Checking `pre-commit` hooks
 
 on:
@@ -9,21 +11,17 @@ on:
     branches:
       - master
 
+  # enable this workflow to be reused
+  workflow_call:
+
 jobs:
-  pr-checks:
+  pre-commit-checks:
     name: Checking `pre-commit` hooks
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Check the `pre-commit` hook configuration presence
-        id: check_files
-        uses: andstor/file-existence-action@v1
-        with:
-          files: .pre-commit-config.yaml
+        uses: actions/checkout@v4
 
       - name: Checking configured hooks
-        if: steps.check_files.outputs.files_exists == 'true'
-        uses: pre-commit/action@v2.0.3
+        uses: pre-commit/action@v3.0.1
