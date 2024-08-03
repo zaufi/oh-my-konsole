@@ -1,5 +1,5 @@
-What is this
-============
+# What is this
+
 
 The main purpose of this package is to bring some fun to
 KDE `konsole` ;-) It'll change the color scheme depending
@@ -19,21 +19,20 @@ The following color schemes are available:
   yellow and blue.
 
 
-How to install
-==============
+## How to install
 
 Run the `install.sh` provided. Install to the user's `$HOME`:
 
-    $ ./install.sh -u
+    ./install.sh -u
 
 or to the system:
 
-    $ ./install.sh -s
+    ./install.sh -s
 
 And for the Gentoo users, there is the [ebuild][1] for this package.
 
-Configuration
-=============
+## Configuration
+
 
 There is a trivial config file provided, so you can override
 desired color schemes for any command.
