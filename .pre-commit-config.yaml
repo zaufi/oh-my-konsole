@@ -1,12 +1,16 @@
-# Read the docs here: https://pre-commit.com and http://jorisroovers.github.io/gitlint/
-# Install hooks to your clone:
+# SPDX-FileCopyrightText: Alex Turbov <zaufi@pm.me>
+# SPDX-License-Identifier: CC0-1.0
+#
+# Read the docs here: https://pre-commit.com
+#
+# Install hooks to your Git repo clone:
 #   $ pre-commit install
 #
 # List of available hooks: https://pre-commit.com/hooks.html
 #
 
 default_stages: [pre-commit]
-default_install_hook_types: [pre-commit, commit-msg]
+default_install_hook_types: &all [commit-msg, pre-commit]
 fail_fast: false
 
 repos:
@@ -16,12 +20,12 @@ repos:
       - id: check-useless-excludes
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: check-case-conflict
       - id: check-executables-have-shebangs
         always_run: true
-      - id: check-yaml
+      - id: check-toml
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: trailing-whitespace
@@ -32,40 +36,51 @@ repos:
       - id: git-check
         pass_filenames: false
 
+  # NOTE Read the configuration docs here: http://jorisroovers.github.io/gitlint
+  # NOTE Read the "Conventional Commits" Specification here:
+  # https://www.conventionalcommits.org/en/v1.0.0/#summary
   - repo: https://github.com/jorisroovers/gitlint
     rev: v0.19.1
     hooks:
       - id: gitlint
-        name: Commit message check
         stages: [commit-msg]
 
-  - repo: https://github.com/editorconfig-checker/editorconfig-checker.python
-    rev: 2.7.3
+  # NOTE For config options check this: https://editorconfig-checker.github.io
+  - repo: https://github.com/editorconfig-checker/editorconfig-checker
+    rev: v3.6.1
     hooks:
       - id: editorconfig-checker
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
+    rev: v2.4.2
     hooks:
       - id: codespell
+        stages: *all
 
-  - repo: https://github.com/crate-ci/typos
-    rev: v1.23.6
+  # NOTE See BUG https://github.com/crate-ci/typos/issues/390
+  - repo: https://github.com/adhtruong/mirrors-typos
+    rev: v1.44.0
     hooks:
       - id: typos
-        # NOTE Override hook provided args to prevent automatic
+        # NOTE Override hook-provided args to prevent automatic
         # fixing of found typos. Let the dev decide what to fix!
         args: [--force-exclude]
+        stages: *all
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.41.0
+    rev: v0.48.0
     hooks:
       - id: markdownlint
 
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+
   - repo: https://github.com/koalaman/shellcheck-precommit
-    rev: v0.10.0
+    rev: v0.11.0
     hooks:
       - id: shellcheck
-        args: ['--shell=bash', '--color=always']
-        files: '(oh-my-konsole|\.sh)$'
-        types: ['file', 'text']
+        args: [--shell=bash, --color=always]
+        files: (oh-my-konsole|\.sh)$
+        types: [file, text]

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Alex Turbov <zaufi@pm.me>
+# SPDX-License-Identifier: CC0-1.0
+
 # Custom attribute to mark ignored sources. Example:
 # third-party sources, IDE files, data files used for unit tests, &etc.
 [attr]noqa              whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab,-tab-in-indent,-indent-with-non-tab
@@ -9,13 +12,20 @@
 
 # Prevent some VCS related service files to be exported
 .codespellrc            export-ignore
-.editorconfig           export-ignore
+.editorconfig*          export-ignore
 .git*                   export-ignore
 .mailmap                export-ignore
+.markdownlint*          export-ignore
 .pre-commit-config.yaml export-ignore
+.typos.toml             export-ignore
 
 # NOTE Keep project-specifics below
 
 # NOTE Tabulation symbols prohibited for all text files by default
 *                       text=auto whitespace=tab-in-indent
 *.md                    doc
+*.rst                   doc
+
+# Pictures are obviously binaries
+*.ico                   binary
+*.png                   binary

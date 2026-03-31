@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: Alex Turbov <zaufi@pm.me>
+# SPDX-License-Identifier: CC0-1.0
+#
+# Read about the file format here: https://editorconfig.org/#file-format-details
+#
+
 root = true
 
 [*]
