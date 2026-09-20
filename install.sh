@@ -12,7 +12,7 @@ __EOF__
 )
 
 # Execute getopt
-ARGS=$(getopt -o "hsu" -l "help,system,user" -n "install.sh" -- "$@")
+ARGS=$(getopt -o hsu -l help,system,user -n install.sh -- "$@")
 
 # Check args
 # shellcheck disable=SC2181
@@ -22,6 +22,17 @@ if [[ $? -ne 0 ]]; then
 fi
 
 eval set -- "$ARGS"
+
+if [[ -f /etc/os-release ]]; then
+    # shellcheck source=/dev/null
+    . /etc/os-release
+fi
+
+if [[ $NAME == 'Exherbo' ]]; then
+    _dst_profile_d=bash/bashrc.d
+else
+    _dst_profile_d=profile.d
+fi
 
 # Now go through all the options
 while true; do
@@ -33,16 +44,18 @@ while true; do
             ;;
         -s|--system)
             # TODO Use XDG_DATA_DIRS?
-            _dst_data_dir="/usr/share/konsole"
-            _dst_sysconf_dir="/etc"
-            _dst_sample_config="/etc/conf.d/oh-my-konsole.sample"
+            _dst_data_dir=/usr/share/konsole
+            _dst_sysconf_dir=/etc
+            _dst_profile_d="${_dst_sysconf_dir}/${_dst_profile_d}"
+            _dst_sample_config=/etc/conf.d/oh-my-konsole.sample
             shift
             ;;
         -u|--user)
             _dst_data_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/konsole"
             _dst_sysconf_dir="${XDG_DATA_HOME:-${HOME}/.local/etc}"
+            _dst_profile_d="${_dst_sysconf_dir}/${_dst_profile_d}"
             _dst_sample_config="${HOME}/.config/oh-my-konsole.conf"
-            echo -e "\n*** NOTE: To activate color changer, add '. ${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh' to your '~/.bashrc'\n"
+            echo -e "\n*** NOTE: To activate color changer, add '. ${_dst_profile_d}/oh-my-konsole.sh' to your '~/.bashrc'\n"
             shift
             ;;
         --)
@@ -67,5 +80,5 @@ done
 echo install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sample_config}"
 install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sample_config}"
 
-echo install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh"
-install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_sysconf_dir}/profile.d/oh-my-konsole.sh"
+echo install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_profile_d}/oh-my-konsole.sh"
+install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_profile_d}/oh-my-konsole.sh"

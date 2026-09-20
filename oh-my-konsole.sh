@@ -5,6 +5,9 @@
 # TODO Get original binary paths and avoid hardcode
 #
 
+# Only load in interactive Bash shells.
+[[ $- == *i* ]] || return
+
 # Do nothing for non `konsole` sessions
 [[ -z $KONSOLE_DBUS_SESSION ]] && return
 
