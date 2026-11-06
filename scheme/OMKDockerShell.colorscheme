@@ -89,6 +89,6 @@ Color=15,130,15
 Color=25,240,110
 
 [General]
-Description=OhMyKonsole: SSH Shell
+Description=OhMyKonsole: Docker Shell
 Opacity=0.85
 Wallpaper=
