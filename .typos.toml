@@ -7,23 +7,25 @@
 # NOTE The manual about supported regex syntax is here:
 # https://docs.rs/regex/latest/regex/index.html#syntax
 #
+#:schema https://raw.githubusercontent.com/crate-ci/typos/master/config.schema.json
+#
 
 [default]
 check-file = true
 check-filename = true
 extend-ignore-re = [
-    # NOTE Allow to mark block of text to exclude from spellchecking inside C++ or Python comments
-    "(?s)(#|//)\\s*(NOQA|noqa):? spellcheck(: *|=| +)off.*?\\n\\s*(#|//)\\s*(NOQA|noqa):? spellcheck(: *|=| +)on"
-    # NOTE Allow to mark a line to exclude from spellchecking
-  , "(?Rm)^.*(#|//)\\s*(NOQA|noqa):? spellcheck(: *|=| +)disable-line$"
-    # NOTE Stop checking from this line to the end of file
-    # This line is a marker added by Git to the `COMMIT_EDITMSG`.
-  , "(?sm)^# ------------------------ >8 ------------------------$.*"
-  ]
-locale = "en-us"
+  # NOTE Allow to mark block of text to exclude from spellchecking inside C++ or Python comments
+  '(?Rms)(?:#|//)[ \t]*(?:NOQA|noqa):?[ \t]+spellcheck(?::[ \t]*|=[ \t]*|[ \t]+)off[ \t]*$.*?^[ \t]*(?:#|//)[ \t]*(?:NOQA|noqa):?[ \t]+spellcheck(?::[ \t]*|=[ \t]*|[ \t]+)on[ \t]*$',
+  # NOTE Allow to mark a line to exclude from spellchecking
+  '(?Rm)^.*(?:#|//)[ \t]*(?:NOQA|noqa):?[ \t]+spellcheck(?::[ \t]*|=[ \t]*|[ \t]+)disable-line[ \t]*$',
+  # NOTE Stop checking from this line to the end of file
+  # This line is a marker added by Git to the `COMMIT_EDITMSG`.
+  '(?Rsm)^# ------------------------ >8 ------------------------$.*',
+]
+locale = 'en-us'
 
-# NOTE Add repo-wide false positives here in the form of `word = "word"`.
-
+# NOTE Add repo-wide spelling corrections here.
+# To accept a false positive, map the word to itself.
 # Check the manual for details.
 [default.extend-words]
 # codespell:ignore-begin
@@ -41,13 +43,13 @@ ignore-vcs = true
 # BEGIN Type-specific settings
 [type.rst]
 extend-ignore-re = [
-    # NOTE Allow to mark block of text to exclude from spellchecking as RST comments
-    "(?s)\\.\\.\\s+(NOQA|noqa):? spellcheck(: *|=| +)off.*?\\n\\.\\.\\s+(NOQA|noqa):? spellcheck(: *|=| +)on"
-  ]
+  # NOTE Allow to mark block of text to exclude from spellchecking as RST comments
+  '(?Rms)^[ \t]*\.\.[ \t]+(?:NOQA|noqa):?[ \t]+spellcheck(?::[ \t]*|=[ \t]*|[ \t]+)off[ \t]*$.*?^[ \t]*\.\.[ \t]+(?:NOQA|noqa):?[ \t]+spellcheck(?::[ \t]*|=[ \t]*|[ \t]+)on[ \t]*$',
+]
 
 [type.md]
 extend-ignore-re = [
-    # NOTE Allow to mark block of text to exclude from spellchecking as HTML comments
-    "(?s)<!--\\s*(NOQA|noqa):? spellcheck(: *|=| +)off\\s*-->.*?\\n<!--\\s*(NOQA|noqa):? spellcheck(: *|=| +)on\\s*-->"
-  ]
+  # NOTE Allow to mark block of text to exclude from spellchecking as HTML comments
+  '(?ms)<!--[ \t]*(?:NOQA|noqa):?[ \t]+spellcheck(?::[ \t]*|=[ \t]*|[ \t]+)off[ \t]*-->.*?^[ \t]*<!--[ \t]*(?:NOQA|noqa):?[ \t]+spellcheck(?::[ \t]*|=[ \t]*|[ \t]+)on[ \t]*-->',
+]
 # END Type-specific settings

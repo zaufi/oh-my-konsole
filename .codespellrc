@@ -14,8 +14,15 @@ check-filenames =
 context = 2
 enable-colors = true
 quiet-level = 3
-# TODO Add files/directories to ignore to the list below.
-# skip =
+# NOTE Enable multiline ignore block plus Git added scissors
+# in a commit message file, so random hashes found below
+# wouldn't trigger spelling errors.
+ignore-multiline-regex = (?xms)
+    ^ \#\x20-{24}\x20>8\x20-{24}\r? $ .*
+    |
+    ^ [\x20\t]* \# [\x20\t]* codespell:ignore-begin [\x20\t]* \r? $
+    .*?
+    ^ [\x20\t]* \# [\x20\t]* codespell:ignore-end [\x20\t]* \r? $
 # TODO Add _false positives_ to the ignore list below.
 # noqa: spellcheck off
 # ignore-words-list =
