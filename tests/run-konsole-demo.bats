@@ -20,8 +20,19 @@ EOF
 #!/usr/bin/env bash
 printf 'sleep %s\n' "$1" >>"$DEMO_TEST_LOG"
 EOF
-    chmod +x "$BATS_TEST_TMPDIR/bin/dotool" "$BATS_TEST_TMPDIR/bin/sleep"
+    cat >"$BATS_TEST_TMPDIR/bin/ps" <<'EOF'
+#!/usr/bin/env bash
+printf '1 %s\n' "${DEMO_TEST_TERMINAL:-konsole}"
+EOF
+    cat >"$BATS_TEST_TMPDIR/bin/qdbus-qt6" <<'EOF'
+#!/usr/bin/env bash
+printf 'tab %s %s %s\n' "$@" >>"$DEMO_TEST_LOG"
+exit "${DEMO_TEST_TAB_STATUS:-0}"
+EOF
+    chmod +x "$BATS_TEST_TMPDIR/bin/"{dotool,sleep,ps,qdbus-qt6}
     export PATH=$BATS_TEST_TMPDIR/bin:$PATH
+    export KONSOLE_DBUS_SERVICE=org.kde.konsole.test
+    export KONSOLE_DBUS_WINDOW=/Windows/1
 
     cat >"$BATS_TEST_TMPDIR/demo steps.yaml" <<'EOF'
 - comment: "Preparing the demo"
@@ -82,6 +93,66 @@ run_without_tool()
     run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/demo steps.yaml"
     assert_success
     assert_output ''
+    assert_stderr ''
+    assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\nsleep 0.5'
+}
+
+@test "opens a Konsole tab before typing with -t" {
+    run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml"
+    assert_success
+    assert_stderr ''
+    assert_equal "$(cat "$DEMO_TEST_LOG")" $'tab org.kde.konsole.test /Windows/1 org.kde.konsole.Window.newSession\ntype  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\nsleep 0.5'
+}
+
+@test "opens a Yakuake tab before typing with -t" {
+    export DEMO_TEST_TERMINAL=yakuake
+    run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml"
+    assert_success
+    assert_stderr ''
+    assert_equal "$(cat "$DEMO_TEST_LOG")" $'tab org.kde.yakuake /yakuake/sessions org.kde.yakuake.addSession\ntype  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\nsleep 0.5'
+}
+
+@test "stops before typing when opening a tab fails" {
+    export DEMO_TEST_TAB_STATUS=7
+    run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml"
+    assert_failure 7
+    assert_equal "$(cat "$DEMO_TEST_LOG")" 'tab org.kde.konsole.test /Windows/1 org.kde.konsole.Window.newSession'
+}
+
+@test "shows help with -t without opening a tab" {
+    for option in -h --help; do
+        run --separate-stderr bash "$script" -t "$option"
+        assert_success
+        assert_output --partial '-t'
+        assert_stderr ''
+        assert_file_empty "$DEMO_TEST_LOG"
+    done
+}
+
+@test "rejects invalid arguments with -t before opening a tab" {
+    run --separate-stderr bash "$script" -t
+    assert_failure 2
+    assert_stderr --partial 'Usage:'
+    assert_file_empty "$DEMO_TEST_LOG"
+
+    run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml" extra
+    assert_failure 2
+    assert_stderr --partial 'Usage:'
+    assert_file_empty "$DEMO_TEST_LOG"
+
+    for option in -x --unknown; do
+        run --separate-stderr bash "$script" -t "$option" "$BATS_TEST_TMPDIR/demo steps.yaml"
+        assert_failure 2
+        assert_stderr --partial 'Unknown option:'
+        assert_file_empty "$DEMO_TEST_LOG"
+    done
+}
+
+@test "accepts a filename beginning with a dash after --" {
+    cp "$BATS_TEST_TMPDIR/demo steps.yaml" "$BATS_TEST_TMPDIR/-t"
+    cd "$BATS_TEST_TMPDIR" || return
+    run --separate-stderr bash "$script" -- -t
+    assert_success
     assert_stderr ''
     assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\nsleep 0.5'
 }

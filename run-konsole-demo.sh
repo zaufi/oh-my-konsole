@@ -5,7 +5,7 @@ function usage()
 {
     require-tools cat || return $?
     cat <<'HELP'
-Usage: run-konsole-demo FILE
+Usage: run-konsole-demo [-t] [--] FILE
        run-konsole-demo [-h|--help]
 
 Run the demo steps from a YAML file:
@@ -22,10 +22,12 @@ KONSOLE_DEMO_DEFAULT_SLEEP sets the default delay (10 seconds).
 
 Requirements:
     dotool for typing; yq v4 for YAML.
+    qdbus-qt6 for opening a new terminal tab with -t.
     Typing sends input to the focused window; focus the intended terminal.
 
 Options:
-    -h, --help                       Show this help screen.
+    -t                       Open a new terminal tab before running steps.
+    -h, --help               Show this help screen.
 HELP
 }
 
@@ -237,20 +239,38 @@ if (( $# == 0 )); then
     usage
     exit $?
 fi
-if (( $# != 1 )); then
+
+new_tab=false
+show_help=false
+while getopts ':ht-:' option; do
+    if [[ $option == - && $OPTARG == help ]]; then
+        option=h
+    fi
+    case $option in
+        h) show_help=true ;;
+        t) new_tab=true ;;
+        *)
+            if [[ $option == - ]]; then
+                OPTARG=-$OPTARG
+            fi
+            printf 'Unknown option: -%s\n' "$OPTARG" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+shift "$((OPTIND - 1))"
+
+if $show_help && (( $# == 0 )); then
+    usage
+    exit $?
+fi
+if $show_help || (( $# != 1 )); then
     printf 'Expected exactly one YAML file.\n' >&2
     usage >&2
     exit 2
 fi
-case $1 in
-    -h|--help)
-        usage
-        exit $?
-        ;;
-    -*)
-        printf 'Unknown option: %s\n' "$1" >&2
-        usage >&2
-        exit 2
-        ;;
-esac
+if $new_tab; then
+    new-terminal-tab || exit $?
+fi
 steps-from-yaml "$1"

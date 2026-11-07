@@ -56,4 +56,7 @@ terminal before running it. Each step waits 10 seconds afterward unless `sleep`
 is specified; set `KONSOLE_DEMO_DEFAULT_SLEEP` to change that default. Use
 `--help` for usage details.
 
+Use `run-konsole-demo -t demo.yaml` to open a new Konsole or Yakuake tab before
+running the steps. This option also requires `qdbus-qt6`.
+
 [1]: https://github.com/zaufi/zaufi-overlay/blob/master/kde-misc/oh-my-konsole/oh-my-konsole-scm.ebuild
