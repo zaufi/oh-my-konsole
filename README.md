@@ -43,23 +43,34 @@ desired color schemes for any command.
 
 ## Running demos
 
-`run-konsole-demo` opens a new Konsole or Yakuake tab and types comments and
-commands from a YAML file into it. It requires `dotool`, `yq` v4, and `qdbus-qt6`.
-For example, save this as `demo.yaml`:
+`run-konsole-demo` opens a new Konsole or Yakuake tab and types comments,
+commands, and key presses from a YAML file into it. It requires `dotool`, `yq` v4,
+and `qdbus-qt6`. For example, save this as `demo.yaml`:
 
     - "Preparing the demo"
     - command: "echo hello"
       sleep: 0.5
+    - command: "top"
+      wait: false
+      sleep: 3
+    - key: "q"
+    - key: "ctrl+l"
 
 String steps are shorthand for `comment` steps and use the default delay.
 Use an object such as `- comment: "Preparing the demo"` to set an explicit `sleep`.
 
+A `key` step sends one or more space-separated `dotool` chords, such as `ctrl+l`,
+`shift+pageup`, `x:exclam`, or `k:104` (see `man dotool` and
+`dotool --list-keys`). All chords are checked before anything is typed.
+
 Run `run-konsole-demo demo.yaml` from a Konsole or Yakuake terminal after
 installation, or `bash ./run-konsole-demo.sh demo.yaml` from the repository. Keep
-the new tab focused while the demo runs. After each step the runner waits until
-the typed command has finished, then sleeps for the step's `sleep`. Comments
+the new tab focused while the demo runs. After a command, the runner waits until
+it has finished; comments and keys don't wait. Set `wait: false` to keep going
+while an interactive program such as `top` runs, or `wait: true` to make a
+comment or key step wait. Then the runner sleeps for the step's `sleep`. Comments
 without `sleep` wait 10 seconds; set `KONSOLE_DEMO_DEFAULT_SLEEP` to change that
-default. Commands without `sleep` continue right away. Use `--help` for usage
-details.
+default. Commands and keys without `sleep` continue right away. Use `--help` for
+usage details.
 
 [1]: https://github.com/zaufi/zaufi-overlay/blob/master/kde-misc/oh-my-konsole/oh-my-konsole-scm.ebuild

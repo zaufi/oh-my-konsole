@@ -14,7 +14,11 @@ setup()
     mkdir "$BATS_TEST_TMPDIR/bin"
     cat >"$BATS_TEST_TMPDIR/bin/dotool" <<'EOF'
 #!/usr/bin/env bash
-cat >>"$DEMO_TEST_LOG"
+case $1 in
+    --list-keys) printf '%s\n' 'esc    k:1' 'l      k:38' 'q      k:16' 'pageup k:104' ;;
+    --list-x-keys) printf '%s\n' 'Escape k:1' 'exclam shift+k:2' ;;
+    *) cat >>"$DEMO_TEST_LOG" ;;
+esac
 EOF
     cat >"$BATS_TEST_TMPDIR/bin/sleep" <<'EOF'
 #!/usr/bin/env bash
@@ -65,7 +69,7 @@ EOF
 
     konsole_tab=$'dbus org.kde.konsole.test /Windows/1 newSession\ndbus org.kde.konsole.test /Sessions/3 processId'
     idle=$'sleep 0.2\ndbus org.kde.konsole.test /Sessions/3 foregroundProcessId'
-    demo_log="$konsole_tab"$'\ntype  # Preparing the demo\nkey enter\n'"$idle"$'\nsleep 0.25\ntype echo hello\nkey enter\n'"$idle"$'\nsleep 0.5'
+    demo_log="$konsole_tab"$'\ntype  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\n'"$idle"$'\nsleep 0.5'
 }
 
 run_without_tool()
@@ -136,7 +140,7 @@ EOF
     assert_success
     assert_output ''
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype  # Preparing the demo\nkey enter\n'"$idle"$'\nsleep 0.25\ntype  # Existing comment\nkey enter\n'"$idle"$'\nsleep 0.5\ntype echo hello\nkey enter\n'"$idle"$'\ntype  # Finished: ready\nkey enter\n'"$idle"$'\nsleep 0.25'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype  # Preparing the demo\nkey enter\nsleep 0.25\ntype  # Existing comment\nkey enter\nsleep 0.5\ntype echo hello\nkey enter\n'"$idle"$'\ntype  # Finished: ready\nkey enter\nsleep 0.25'
 }
 
 @test "accepts empty and quoted numeric string steps as comments" {
@@ -145,7 +149,7 @@ EOF
     assert_success
     assert_output ''
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype  # \nkey enter\n'"$idle"$'\nsleep 0.25\ntype  # 42\nkey enter\n'"$idle"$'\nsleep 0.25'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype  # \nkey enter\nsleep 0.25\ntype  # 42\nkey enter\nsleep 0.25'
 }
 
 @test "uses ten seconds for string steps when the default delay is unset" {
@@ -154,7 +158,7 @@ EOF
     run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/strings.yaml"
     assert_success
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype  # Preparing the demo\nkey enter\n'"$idle"$'\nsleep 10'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype  # Preparing the demo\nkey enter\nsleep 10'
 }
 
 @test "rejects control characters in string steps before typing any steps" {
@@ -203,7 +207,7 @@ EOF
     assert_success
     assert_stderr ''
     local poll=$'sleep 0.2\ndbus org.kde.yakuake /Sessions/3 foregroundProcessId'
-    assert_equal "$(cat "$DEMO_TEST_LOG")" $'dbus org.kde.yakuake /yakuake/sessions addSession\ndbus org.kde.yakuake /Sessions/3 processId\ntype  # Preparing the demo\nkey enter\n'"$poll"$'\nsleep 0.25\ntype echo hello\nkey enter\n'"$poll"$'\nsleep 0.5'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" $'dbus org.kde.yakuake /yakuake/sessions addSession\ndbus org.kde.yakuake /Sessions/3 processId\ntype  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\n'"$poll"$'\nsleep 0.5'
 }
 
 @test "stops before typing when the new Yakuake session is not unique" {
@@ -215,6 +219,57 @@ EOF
         assert_failure 1
         assert_stderr --partial 'new-yakuake-tab:'
         assert_equal "$(cat "$DEMO_TEST_LOG")" 'dbus org.kde.yakuake /yakuake/sessions addSession'
+    done
+}
+
+@test "sends key steps without waiting and sleeps only when asked" {
+    printf '%s\n' '- key: "ctrl+l"' '- key: "shift+pageup x:exclam  k:104 Esc"' '  sleep: 0.5' >"$BATS_TEST_TMPDIR/keys.yaml"
+    run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/keys.yaml"
+    assert_success
+    assert_stderr ''
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\nkey ctrl+l\nkey shift+pageup x:exclam  k:104 Esc\nsleep 0.5'
+}
+
+@test "drives an interactive command with wait false and key steps" {
+    cat >"$BATS_TEST_TMPDIR/top.yaml" <<'EOF'
+- command: "top"
+  wait: false
+  sleep: 3
+- key: "q"
+- key: "ctrl+l"
+  wait: true
+- comment: "done"
+  wait: true
+  sleep: 0
+EOF
+    printf '5\n' >"$DEMO_TEST_LOG.busy"
+    run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/top.yaml"
+    assert_success
+    assert_stderr ''
+    local poll=$'dbus org.kde.konsole.test /Sessions/3 foregroundProcessId'
+    # The busy counter is consumed only by the first explicit wait.
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype top\nkey enter\nsleep 3\nkey q\nkey ctrl+l\nsleep 0.2\n'"$poll"$'\nsleep 0.5\n'"$poll"$'\nsleep 0.5\n'"$poll"$'\nsleep 0.5\n'"$poll"$'\nsleep 0.5\n'"$poll"$'\nsleep 0.5\n'"$poll"$'\ntype  # done\nkey enter\n'"$idle"$'\nsleep 0'
+}
+
+@test "rejects unknown keys before opening a tab" {
+    local chord
+    for chord in shift+pgup hyper+l +l x:nosuch x: k:abc ctrl+ '' ' ' 'l esc pgdn'; do
+        printf '%s\n' '- command: "echo valid"' "- key: '$chord'" >"$BATS_TEST_TMPDIR/invalid.yaml"
+        run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/invalid.yaml"
+        assert_failure 1
+        assert_stderr --regexp 'unknown (key|modifier) in chord|needs at least one chord'
+        assert_file_empty "$DEMO_TEST_LOG"
+    done
+}
+
+@test "rejects invalid wait values and mixed step kinds before typing" {
+    local step
+    for step in '{command: x, wait: "no"}' '{key: q, wait: 1}' '{command: x, key: q}' '{comment: x, key: q}'; do
+        printf '%s\n' "- $step" >"$BATS_TEST_TMPDIR/invalid.yaml"
+        run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/invalid.yaml"
+        assert_failure 1
+        assert_stderr --regexp 'wait must be true or false|exactly one comment, command or key'
+        assert_file_empty "$DEMO_TEST_LOG"
     done
 }
 

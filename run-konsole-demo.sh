@@ -15,16 +15,25 @@ YAML example (demo.yaml):
     - "Preparing the demo"
     - command: "echo hello"
       sleep: 0.5
+    - command: "top"
+      wait: false
+      sleep: 3
+    - key: "q"
+    - key: "ctrl+l"
 
 Each step is a single-line string (a comment), or an object with exactly
-one comment or command containing a single line, plus an optional
-non-negative sleep duration in seconds.
+one comment, command or key containing a single line, plus an optional
+non-negative sleep duration in seconds and an optional wait (true/false).
 
-After typing each step, the runner waits until the shell in the new tab
-is idle (the command has finished), then sleeps for the step's sleep.
-Comments without sleep use the default delay; commands without sleep
-don't sleep at all. KONSOLE_DEMO_DEFAULT_SLEEP sets the default delay
-(10 seconds).
+A key step sends one or more space-separated dotool chords, such as
+ctrl+l, shift+pageup, x:exclam or k:104; see dotool --list-keys.
+All chords are checked before anything is typed.
+
+After a command, the runner waits until the shell in the new tab is idle
+(the command has finished); comments and keys don't wait. Set wait to
+override that. Then it sleeps for the step's sleep. Comments without
+sleep use the default delay; commands and keys without sleep don't sleep.
+KONSOLE_DEMO_DEFAULT_SLEEP sets the default delay (10 seconds).
 
 Requirements:
     dotool for typing; yq v4 for YAML; qdbus-qt6 and ps for the new tab.
@@ -182,15 +191,42 @@ function type-comment()
 }
 
 
+function check-chords()
+{
+    local -A linux_keys=() x_keys=()
+    local name rest chord key modifiers
+    while read -r name rest; do linux_keys[${name,,}]=1; done < <(dotool --list-keys)
+    while read -r name rest; do x_keys[$name]=1; done < <(dotool --list-x-keys)
+
+    for chord in "$@"; do
+        key=${chord##*+}
+        case $key in
+            k:*) [[ $key =~ ^k:[0-9]+$ ]] ;;
+            x:*) [[ -n ${key#x:} && -n ${x_keys[${key#x:}]-} ]] ;;
+            *) [[ -n $key && -n ${linux_keys[${key,,}]-} ]] ;;
+        esac || {
+            printf 'check-chords: unknown key in chord: %s\n' "$chord" >&2
+            return 1
+        }
+
+        modifiers=${chord%"$key"}
+        if [[ ! ${modifiers,,} =~ ^((super|altgr|ctrl|control|alt|shift)[+])*$ ]]; then
+            printf 'check-chords: unknown modifier in chord: %s\n' "$chord" >&2
+            return 1
+        fi
+    done
+}
+
+
 function step()
 {
-    if (( $# < 2 || $# > 3 )); then
-        printf 'Usage: step comment|command "text" [seconds]\n' >&2
+    if (( $# < 3 || $# > 4 )); then
+        printf 'Usage: step comment|command|key "text" true|false [seconds]\n' >&2
         return 2
     fi
 
-    local sleep_time_after=${3-}
-    if (( $# == 2 )) && [[ $1 == comment ]]; then
+    local sleep_time_after=${4-}
+    if (( $# == 3 )) && [[ $1 == comment ]]; then
         sleep_time_after=${KONSOLE_DEMO_DEFAULT_SLEEP:-10}
     fi
     if [[ -n $sleep_time_after && ! $sleep_time_after =~ ^[0-9]+([.][0-9]+)?([eE][+-]?[0-9]+)?$ ]]; then
@@ -201,9 +237,12 @@ function step()
     case $1 in
         comment) type-comment "$2" || return $? ;;
         command) type-command "$2" || return $? ;;
+        key) printf 'key %s\n' "$2" | dotool || return $? ;;
         *) printf 'step: unknown kind: %s\n' "$1" >&2; return 2 ;;
     esac
-    wait-for-shell || return $?
+    if [[ $3 == true ]]; then
+        wait-for-shell || return $?
+    fi
     [[ -z $sleep_time_after ]] || sleep "$sleep_time_after"
 }
 
@@ -220,8 +259,10 @@ function steps-from-yaml()
         return 1
     fi
 
-    local steps kind text delay
+    local steps kind text delay wait
+    local -a chords=() step_chords
     # Capture and validate the whole file before typing any of its steps.
+    # shellcheck disable=SC2016  # $kind is a yq variable
     steps=$(yq eval-all -p=yaml -N -r '
         [.]
         | (
@@ -237,16 +278,16 @@ function steps-from-yaml()
           )
         | (
             select(
-                ((keys - ["comment", "command", "sleep"]) | length) == 0
+                ((keys - ["comment", "command", "key", "sleep", "wait"]) | length) == 0
               and (keys | length) == (keys | unique | length)
-              and (has("comment") != has("command"))
+              and ([has("comment"), has("command"), has("key")] | map(select(.)) | length) == 1
               )
-          // error("expected unique keys: exactly one comment or command, and optional sleep")
+          // error("expected unique keys: exactly one comment, command or key, and optional sleep and wait")
           )
         | (
             select(
-                ((.comment // .command) | tag) == "!!str"
-              and (((.comment // .command) | test("[\n\r\x00]")) | not)
+                ((.comment // .command // .key) | tag) == "!!str"
+              and (((.comment // .command // .key) | test("[\n\r\x00]")) | not)
               )
           // error("step text must be a string without newline, carriage return, or NUL")
           )
@@ -263,24 +304,46 @@ function steps-from-yaml()
               )
           // error("sleep must be a non-negative number")
           )
+        | (
+            select((has("wait") | not) or (.wait | tag) == "!!bool")
+          // error("wait must be true or false")
+          )
+        | (keys - ["sleep", "wait"] | .[0]) as $kind
         | [
-            (keys - ["sleep"] | .[0]),
-            (.comment // .command),
+            $kind,
+            .[$kind],
             (
                 (select(has("sleep")) | .sleep | @json)
               // "default"
-              )
+              ),
+            # Not `//`: it would replace an explicit `false`.
+            (if has("wait") then .wait else $kind == "command" end)
           ]
         | .[]
     ' <"$1") || return $?
 
     [[ -n $steps ]] || return 0
+
+    # dotool only warns about unknown keys, so check all chords before typing anything.
+    while IFS= read -r kind && IFS= read -r text && IFS= read -r delay && IFS= read -r wait; do
+        [[ $kind == key ]] || continue
+        read -ra step_chords <<<"$text"
+        if (( ${#step_chords[@]} == 0 )); then
+            printf 'steps-from-yaml: key step needs at least one chord\n' >&2
+            return 1
+        fi
+        chords+=("${step_chords[@]}")
+    done <<<"$steps"
+    if (( ${#chords[@]} )); then
+        check-chords "${chords[@]}" || return $?
+    fi
+
     new-terminal-tab || return $?
-    while IFS= read -r kind && IFS= read -r text && IFS= read -r delay; do
+    while IFS= read -r kind && IFS= read -r text && IFS= read -r delay && IFS= read -r wait; do
         if [[ $delay == default ]]; then
-            step "$kind" "$text" || return $?
+            step "$kind" "$text" "$wait" || return $?
         else
-            step "$kind" "$text" "$delay" || return $?
+            step "$kind" "$text" "$wait" "$delay" || return $?
         fi
     done <<<"$steps"
 }
