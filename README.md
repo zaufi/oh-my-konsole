@@ -43,8 +43,9 @@ desired color schemes for any command.
 
 ## Running demos
 
-`run-konsole-demo` types comments and commands from a YAML file into the focused
-terminal. It requires `dotool` and `yq` v4. For example, save this as `demo.yaml`:
+`run-konsole-demo` opens a new Konsole or Yakuake tab and types comments and
+commands from a YAML file into it. It requires `dotool`, `yq` v4, and `qdbus-qt6`.
+For example, save this as `demo.yaml`:
 
     - "Preparing the demo"
     - command: "echo hello"
@@ -53,13 +54,12 @@ terminal. It requires `dotool` and `yq` v4. For example, save this as `demo.yaml
 String steps are shorthand for `comment` steps and use the default delay.
 Use an object such as `- comment: "Preparing the demo"` to set an explicit `sleep`.
 
-Run `run-konsole-demo demo.yaml` after installation, or
-`bash ./run-konsole-demo.sh demo.yaml` from the repository. Focus the intended
-terminal before running it. Each step waits 10 seconds afterward unless `sleep`
-is specified; set `KONSOLE_DEMO_DEFAULT_SLEEP` to change that default. Use
-`--help` for usage details.
-
-Use `run-konsole-demo -t demo.yaml` to open a new Konsole or Yakuake tab before
-running the steps. This option also requires `qdbus-qt6`.
+Run `run-konsole-demo demo.yaml` from a Konsole or Yakuake terminal after
+installation, or `bash ./run-konsole-demo.sh demo.yaml` from the repository. Keep
+the new tab focused while the demo runs. After each step the runner waits until
+the typed command has finished, then sleeps for the step's `sleep`. Comments
+without `sleep` wait 10 seconds; set `KONSOLE_DEMO_DEFAULT_SLEEP` to change that
+default. Commands without `sleep` continue right away. Use `--help` for usage
+details.
 
 [1]: https://github.com/zaufi/zaufi-overlay/blob/master/kde-misc/oh-my-konsole/oh-my-konsole-scm.ebuild

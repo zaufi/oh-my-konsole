@@ -26,7 +26,30 @@ printf '1 %s\n' "${DEMO_TEST_TERMINAL:-konsole}"
 EOF
     cat >"$BATS_TEST_TMPDIR/bin/qdbus-qt6" <<'EOF'
 #!/usr/bin/env bash
-printf 'tab %s %s %s\n' "$@" >>"$DEMO_TEST_LOG"
+if (( $# == 1 )); then
+    # List the service objects; a Yakuake session appears after addSession.
+    printf '/Sessions/1\n'
+    if [[ -e $DEMO_TEST_LOG.added ]]; then
+        printf '%s\n' ${DEMO_TEST_NEW_SESSIONS-/Sessions/3}
+    fi
+    exit 0
+fi
+printf 'dbus %s %s %s\n' "$1" "$2" "${3##*.}" >>"$DEMO_TEST_LOG"
+case $3 in
+    *.newSession) printf '3\n' ;;
+    *.addSession) : >"$DEMO_TEST_LOG.added"; printf '0\n' ;;
+    *.processId) printf '100\n' ;;
+    *.foregroundProcessId)
+        # $DEMO_TEST_LOG.busy holds how many polls still report a running command.
+        busy=$(cat "$DEMO_TEST_LOG.busy" 2>/dev/null || printf 0)
+        if (( busy > 0 )); then
+            printf '%s\n' "$((busy - 1))" >"$DEMO_TEST_LOG.busy"
+            printf '200\n'
+        else
+            printf '100\n'
+        fi
+        ;;
+esac
 exit "${DEMO_TEST_TAB_STATUS:-0}"
 EOF
     chmod +x "$BATS_TEST_TMPDIR/bin/"{dotool,sleep,ps,qdbus-qt6}
@@ -39,6 +62,10 @@ EOF
 - command: "echo hello"
   sleep: 0.5
 EOF
+
+    konsole_tab=$'dbus org.kde.konsole.test /Windows/1 newSession\ndbus org.kde.konsole.test /Sessions/3 processId'
+    idle=$'sleep 0.2\ndbus org.kde.konsole.test /Sessions/3 foregroundProcessId'
+    demo_log="$konsole_tab"$'\ntype  # Preparing the demo\nkey enter\n'"$idle"$'\nsleep 0.25\ntype echo hello\nkey enter\n'"$idle"$'\nsleep 0.5'
 }
 
 run_without_tool()
@@ -46,7 +73,7 @@ run_without_tool()
     local missing=$1 tool tool_bin=$BATS_TEST_TMPDIR/without-$1
     shift
     mkdir "$tool_bin"
-    for tool in bash cat dotool sleep; do
+    for tool in bash cat dotool sleep ps qdbus-qt6; do
         if [[ $tool != "$missing" ]]; then
             ln -s "$(command -v "$tool")" "$tool_bin/$tool"
         fi
@@ -61,7 +88,7 @@ run_without_tool()
 
 @test "reports missing demo tools before typing any steps" {
     local tool
-    for tool in dotool yq; do
+    for tool in dotool yq qdbus-qt6 ps; do
         run_without_tool "$tool" "$BATS_TEST_TMPDIR/demo steps.yaml"
         assert_file_empty "$DEMO_TEST_LOG"
         assert_failure 1
@@ -94,7 +121,7 @@ run_without_tool()
     assert_success
     assert_output ''
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\nsleep 0.5'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$demo_log"
 }
 
 @test "runs string steps as comments alongside object steps" {
@@ -109,7 +136,7 @@ EOF
     assert_success
     assert_output ''
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # Preparing the demo\nkey enter\nsleep 0.25\ntype  # Existing comment\nkey enter\nsleep 0.5\ntype echo hello\nkey enter\nsleep 0.25\ntype  # Finished: ready\nkey enter\nsleep 0.25'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype  # Preparing the demo\nkey enter\n'"$idle"$'\nsleep 0.25\ntype  # Existing comment\nkey enter\n'"$idle"$'\nsleep 0.5\ntype echo hello\nkey enter\n'"$idle"$'\ntype  # Finished: ready\nkey enter\n'"$idle"$'\nsleep 0.25'
 }
 
 @test "accepts empty and quoted numeric string steps as comments" {
@@ -118,7 +145,7 @@ EOF
     assert_success
     assert_output ''
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # \nkey enter\nsleep 0.25\ntype  # 42\nkey enter\nsleep 0.25'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype  # \nkey enter\n'"$idle"$'\nsleep 0.25\ntype  # 42\nkey enter\n'"$idle"$'\nsleep 0.25'
 }
 
 @test "uses ten seconds for string steps when the default delay is unset" {
@@ -127,7 +154,7 @@ EOF
     run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/strings.yaml"
     assert_success
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # Preparing the demo\nkey enter\nsleep 10'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype  # Preparing the demo\nkey enter\n'"$idle"$'\nsleep 10'
 }
 
 @test "rejects control characters in string steps before typing any steps" {
@@ -152,55 +179,57 @@ EOF
     done
 }
 
-@test "opens a Konsole tab before typing with -t" {
-    run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml"
+@test "waits for a running command and sleeps only when asked" {
+    printf '%s\n' '- command: "make demo"' '- command: "echo done"' >"$BATS_TEST_TMPDIR/wait.yaml"
+    printf '2\n' >"$DEMO_TEST_LOG.busy"
+    run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/wait.yaml"
     assert_success
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" $'tab org.kde.konsole.test /Windows/1 org.kde.konsole.Window.newSession\ntype  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\nsleep 0.5'
+    local poll=$'dbus org.kde.konsole.test /Sessions/3 foregroundProcessId'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype make demo\nkey enter\nsleep 0.2\n'"$poll"$'\nsleep 0.5\n'"$poll"$'\nsleep 0.5\n'"$poll"$'\ntype echo done\nkey enter\n'"$idle"
 }
 
-@test "opens a Yakuake tab before typing with -t" {
+@test "stops when the session cannot be polled" {
+    printf '%s\n' '- command: "echo hello"' >"$BATS_TEST_TMPDIR/one.yaml"
+    sed -i 's/^    \*\.foregroundProcessId)$/&\n        exit 5/' "$BATS_TEST_TMPDIR/bin/qdbus-qt6"
+    run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/one.yaml"
+    assert_failure 5
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$konsole_tab"$'\ntype echo hello\nkey enter\n'"$idle"
+}
+
+@test "opens a Yakuake tab and watches its new session" {
     export DEMO_TEST_TERMINAL=yakuake
-    run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml"
+    run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/demo steps.yaml"
     assert_success
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" $'tab org.kde.yakuake /yakuake/sessions org.kde.yakuake.addSession\ntype  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\nsleep 0.5'
+    local poll=$'sleep 0.2\ndbus org.kde.yakuake /Sessions/3 foregroundProcessId'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" $'dbus org.kde.yakuake /yakuake/sessions addSession\ndbus org.kde.yakuake /Sessions/3 processId\ntype  # Preparing the demo\nkey enter\n'"$poll"$'\nsleep 0.25\ntype echo hello\nkey enter\n'"$poll"$'\nsleep 0.5'
+}
+
+@test "stops before typing when the new Yakuake session is not unique" {
+    local sessions
+    for sessions in '' '/Sessions/3 /Sessions/4'; do
+        : >"$DEMO_TEST_LOG"
+        rm -f "$DEMO_TEST_LOG.added"
+        DEMO_TEST_TERMINAL=yakuake DEMO_TEST_NEW_SESSIONS=$sessions run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/demo steps.yaml"
+        assert_failure 1
+        assert_stderr --partial 'new-yakuake-tab:'
+        assert_equal "$(cat "$DEMO_TEST_LOG")" 'dbus org.kde.yakuake /yakuake/sessions addSession'
+    done
 }
 
 @test "stops before typing when opening a tab fails" {
     export DEMO_TEST_TAB_STATUS=7
-    run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml"
+    run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/demo steps.yaml"
     assert_failure 7
-    assert_equal "$(cat "$DEMO_TEST_LOG")" 'tab org.kde.konsole.test /Windows/1 org.kde.konsole.Window.newSession'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" 'dbus org.kde.konsole.test /Windows/1 newSession'
 }
 
-@test "shows help with -t without opening a tab" {
-    for option in -h --help; do
-        run --separate-stderr bash "$script" -t "$option"
-        assert_success
-        assert_output --partial '-t'
-        assert_stderr ''
-        assert_file_empty "$DEMO_TEST_LOG"
-    done
-}
-
-@test "rejects invalid arguments with -t before opening a tab" {
-    run --separate-stderr bash "$script" -t
+@test "rejects the removed -t option" {
+    run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml"
     assert_failure 2
-    assert_stderr --partial 'Usage:'
+    assert_stderr --partial 'Unknown option: -t'
     assert_file_empty "$DEMO_TEST_LOG"
-
-    run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml" extra
-    assert_failure 2
-    assert_stderr --partial 'Usage:'
-    assert_file_empty "$DEMO_TEST_LOG"
-
-    for option in -x --unknown; do
-        run --separate-stderr bash "$script" -t "$option" "$BATS_TEST_TMPDIR/demo steps.yaml"
-        assert_failure 2
-        assert_stderr --partial 'Unknown option:'
-        assert_file_empty "$DEMO_TEST_LOG"
-    done
 }
 
 @test "accepts a filename beginning with a dash after --" {
@@ -209,7 +238,7 @@ EOF
     run --separate-stderr bash "$script" -- -t
     assert_success
     assert_stderr ''
-    assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\nsleep 0.5'
+    assert_equal "$(cat "$DEMO_TEST_LOG")" "$demo_log"
 }
 
 @test "shows help without typing for both help options" {
