@@ -97,6 +97,61 @@ run_without_tool()
     assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # Preparing the demo\nkey enter\nsleep 0.25\ntype echo hello\nkey enter\nsleep 0.5'
 }
 
+@test "runs string steps as comments alongside object steps" {
+    cat >"$BATS_TEST_TMPDIR/demo steps.yaml" <<'EOF'
+- Preparing the demo
+- comment: "Existing comment"
+  sleep: 0.5
+- command: "echo hello"
+- "Finished: ready"
+EOF
+    run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/demo steps.yaml"
+    assert_success
+    assert_output ''
+    assert_stderr ''
+    assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # Preparing the demo\nkey enter\nsleep 0.25\ntype  # Existing comment\nkey enter\nsleep 0.5\ntype echo hello\nkey enter\nsleep 0.25\ntype  # Finished: ready\nkey enter\nsleep 0.25'
+}
+
+@test "accepts empty and quoted numeric string steps as comments" {
+    printf '%s\n' '- ""' '- "42"' >"$BATS_TEST_TMPDIR/strings.yaml"
+    run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/strings.yaml"
+    assert_success
+    assert_output ''
+    assert_stderr ''
+    assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # \nkey enter\nsleep 0.25\ntype  # 42\nkey enter\nsleep 0.25'
+}
+
+@test "uses ten seconds for string steps when the default delay is unset" {
+    unset KONSOLE_DEMO_DEFAULT_SLEEP
+    printf '%s\n' '- Preparing the demo' >"$BATS_TEST_TMPDIR/strings.yaml"
+    run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/strings.yaml"
+    assert_success
+    assert_stderr ''
+    assert_equal "$(cat "$DEMO_TEST_LOG")" $'type  # Preparing the demo\nkey enter\nsleep 10'
+}
+
+@test "rejects control characters in string steps before typing any steps" {
+    local text
+    for text in '"line\nbreak"' '"carriage\rreturn"' '"nul\0byte"'; do
+        printf '%s\n' '- command: "echo valid"' "- $text" >"$BATS_TEST_TMPDIR/invalid.yaml"
+        run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/invalid.yaml"
+        assert_failure 1
+        assert_stderr --partial 'step text must be a string without newline, carriage return, or NUL'
+        assert_file_empty "$DEMO_TEST_LOG"
+    done
+}
+
+@test "rejects non-string scalar and nested array steps before typing any steps" {
+    local value
+    for value in 42 0.5 true false null '[]'; do
+        printf '%s\n' '- command: "echo valid"' "- $value" >"$BATS_TEST_TMPDIR/invalid.yaml"
+        run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/invalid.yaml"
+        assert_failure 1
+        assert_stderr --partial 'each step must be an object or string'
+        assert_file_empty "$DEMO_TEST_LOG"
+    done
+}
+
 @test "opens a Konsole tab before typing with -t" {
     run --separate-stderr bash "$script" -t "$BATS_TEST_TMPDIR/demo steps.yaml"
     assert_success

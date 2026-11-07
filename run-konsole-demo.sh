@@ -12,11 +12,12 @@ Run the demo steps from a YAML file:
     run-konsole-demo demo.yaml
 
 YAML example (demo.yaml):
-    - comment: "Preparing the demo"
+    - "Preparing the demo"
     - command: "echo hello"
       sleep: 0.5
 
-Each step has exactly one comment or command containing a single line,
+Each step is a single-line string (a comment with the default delay),
+or an object with exactly one comment or command containing a single line,
 plus an optional non-negative sleep duration in seconds.
 KONSOLE_DEMO_DEFAULT_SLEEP sets the default delay (10 seconds).
 
@@ -181,9 +182,10 @@ function steps-from-yaml()
           )
         | .[0]
         | .[]
+        | ((select(tag == "!!str") | {"comment": .}) // .)
         | (
             select(tag == "!!map")
-          // error("each step must be an object")
+          // error("each step must be an object or string")
           )
         | (
             select(

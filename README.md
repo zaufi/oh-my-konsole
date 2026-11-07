@@ -46,9 +46,12 @@ desired color schemes for any command.
 `run-konsole-demo` types comments and commands from a YAML file into the focused
 terminal. It requires `dotool` and `yq` v4. For example, save this as `demo.yaml`:
 
-    - comment: "Preparing the demo"
+    - "Preparing the demo"
     - command: "echo hello"
       sleep: 0.5
+
+String steps are shorthand for `comment` steps and use the default delay.
+Use an object such as `- comment: "Preparing the demo"` to set an explicit `sleep`.
 
 Run `run-konsole-demo demo.yaml` after installation, or
 `bash ./run-konsole-demo.sh demo.yaml` from the repository. Focus the intended
