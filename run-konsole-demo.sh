@@ -3,6 +3,7 @@
 
 function usage()
 {
+    require-tools cat || return $?
     cat <<'HELP'
 Usage: run-konsole-demo FILE
        run-konsole-demo [-h|--help]
@@ -35,8 +36,21 @@ function die()
 }
 
 
+function require-tools()
+{
+    local tool
+    for tool in "$@"; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            printf 'run-konsole-demo: required tool not found: %s\n' "$tool" >&2
+            return 1
+        fi
+    done
+}
+
+
 function detect-terminal()
 {
+    require-tools ps || return $?
     local pid=$$ parent name
 
     while (( pid > 1 )); do
@@ -56,6 +70,7 @@ function detect-terminal()
 
 function new-yakuake-tab()
 {
+    require-tools qdbus-qt6 || return $?
     qdbus-qt6 org.kde.yakuake /yakuake/sessions org.kde.yakuake.addSession
 }
 
@@ -67,6 +82,7 @@ function new-konsole-tab()
         return 1
     fi
 
+    require-tools qdbus-qt6 || return $?
     qdbus-qt6 "$KONSOLE_DBUS_SERVICE" "$KONSOLE_DBUS_WINDOW" org.kde.konsole.Window.newSession
 }
 
@@ -74,7 +90,7 @@ function new-konsole-tab()
 function new-terminal-tab()
 {
     local terminal
-    terminal=$(detect-terminal)
+    terminal=$(detect-terminal) || return $?
 
     case $terminal in
         konsole) new-konsole-tab ;;
@@ -147,10 +163,7 @@ function steps-from-yaml()
         printf 'Usage: steps-from-yaml FILE\n' >&2
         return 2
     fi
-    if ! command -v yq >/dev/null 2>&1; then
-        printf 'steps-from-yaml: yq v4 is required\n' >&2
-        return 1
-    fi
+    require-tools yq dotool || return $?
     if [[ ! -r $1 ]]; then
         printf 'steps-from-yaml: cannot read file: %s\n' "$1" >&2
         return 1
@@ -222,7 +235,7 @@ function steps-from-yaml()
 
 if (( $# == 0 )); then
     usage
-    exit 0
+    exit $?
 fi
 if (( $# != 1 )); then
     printf 'Expected exactly one YAML file.\n' >&2
@@ -232,7 +245,7 @@ fi
 case $1 in
     -h|--help)
         usage
-        exit 0
+        exit $?
         ;;
     -*)
         printf 'Unknown option: %s\n' "$1" >&2

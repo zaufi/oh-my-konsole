@@ -30,6 +30,54 @@ EOF
 EOF
 }
 
+run_without_tool()
+{
+    local missing=$1 tool tool_bin=$BATS_TEST_TMPDIR/without-$1
+    shift
+    mkdir "$tool_bin"
+    for tool in bash cat dotool sleep; do
+        if [[ $tool != "$missing" ]]; then
+            ln -s "$(command -v "$tool")" "$tool_bin/$tool"
+        fi
+    done
+    if [[ $missing != yq ]]; then
+        printf '#!%s\nPATH=%q exec %q "$@"\n' \
+            "$(command -v bash)" "$PATH" "$(command -v yq)" >"$tool_bin/yq"
+        chmod +x "$tool_bin/yq"
+    fi
+    run --separate-stderr env PATH="$tool_bin" "$(command -v bash)" "$script" "$@"
+}
+
+@test "reports missing demo tools before typing any steps" {
+    local tool
+    for tool in dotool yq; do
+        run_without_tool "$tool" "$BATS_TEST_TMPDIR/demo steps.yaml"
+        assert_file_empty "$DEMO_TEST_LOG"
+        assert_failure 1
+        assert_output ''
+        assert_stderr --partial "required tool not found: $tool"
+    done
+}
+
+@test "shows help without demo tools" {
+    local tool
+    for tool in yq dotool; do
+        run_without_tool "$tool" --help
+        assert_success
+        assert_output --partial 'Usage: run-konsole-demo'
+        assert_stderr ''
+        assert_file_empty "$DEMO_TEST_LOG"
+    done
+}
+
+@test "reports missing cat when showing help" {
+    run_without_tool cat --help
+    assert_failure 1
+    assert_output ''
+    assert_stderr --partial 'required tool not found: cat'
+    assert_file_empty "$DEMO_TEST_LOG"
+}
+
 @test "runs YAML from a path containing spaces with default and explicit delays" {
     run --separate-stderr bash "$script" "$BATS_TEST_TMPDIR/demo steps.yaml"
     assert_success
