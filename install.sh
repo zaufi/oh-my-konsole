@@ -8,6 +8,11 @@ Usage: $0 OPTION
 where an OPTION is one of
     -s,--system     system-wide install
     -u,--user       install to user's HOME
+
+Environment:
+    BINDIR         override the binary installation directory
+    XDG_BIN_HOME   user binary directory (default: \$HOME/.local/bin)
+                   system binaries default to /usr/bin
 __EOF__
 )
 
@@ -44,6 +49,7 @@ while true; do
             ;;
         -s|--system)
             # TODO Use XDG_DATA_DIRS?
+            _dst_bin_dir="${BINDIR:-/usr/bin}"
             _dst_data_dir=/usr/share/konsole
             _dst_sysconf_dir=/etc
             _dst_profile_d="${_dst_sysconf_dir}/${_dst_profile_d}"
@@ -51,6 +57,7 @@ while true; do
             shift
             ;;
         -u|--user)
+            _dst_bin_dir="${BINDIR:-${XDG_BIN_HOME:-${HOME}/.local/bin}}"
             _dst_data_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/konsole"
             _dst_sysconf_dir="${XDG_DATA_HOME:-${HOME}/.local/etc}"
             _dst_profile_d="${_dst_sysconf_dir}/${_dst_profile_d}"
@@ -82,3 +89,6 @@ install -m 0644 -D conf.d/oh-my-konsole "${DESTDIR}${_dst_sample_config}"
 
 echo install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_profile_d}/oh-my-konsole.sh"
 install -m 0644 -D oh-my-konsole.sh "${DESTDIR}${_dst_profile_d}/oh-my-konsole.sh"
+
+echo install -m 0755 -D run-konsole-demo.sh "${DESTDIR}${_dst_bin_dir}/run-konsole-demo"
+install -m 0755 -D run-konsole-demo.sh "${DESTDIR}${_dst_bin_dir}/run-konsole-demo"

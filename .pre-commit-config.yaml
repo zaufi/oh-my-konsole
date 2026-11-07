@@ -86,6 +86,6 @@ repos:
     rev: v0.11.0
     hooks:
       - id: shellcheck
-        args: [--shell=bash, --color=always]
-        files: (oh-my-konsole|\.sh)$
+        args: [--color=always]
+        files: (\.sh|\.bats)$
         types: [file, text]
